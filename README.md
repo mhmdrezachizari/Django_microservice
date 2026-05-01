@@ -1,5 +1,11 @@
-# Django_microservice
-build a example of django microservice architecture with rabbitmq and event driven design
+# 🚀 Django Microservices with Docker
+
+A simple microservices project using **Django**, **PostgreSQL**, **RabbitMQ**, and **Docker Compose**.
+
+---
+
+## 🧩 Architecture
+
 # Microservices Docker Setup
 
 A simple Docker Compose setup with two Django services, PostgreSQL databases, RabbitMQ, and a product worker.

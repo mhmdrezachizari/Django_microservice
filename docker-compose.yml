@@ -1,0 +1,87 @@
+version: "3.9"
+
+services:
+  user_db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: user
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - user_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  product_db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: product
+      POSTGRES_USER: product
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5434:5432"
+    volumes:
+      - product_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U product"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  user_service:
+    build: ./user_service
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./user_service:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      user_db:
+        condition: service_healthy
+
+  product_service:
+    build: ./product_service
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8001"
+    volumes:
+      - ./product_service:/app
+    ports:
+      - "8001:8001"
+    depends_on:
+      product_db:
+        condition: service_healthy
+    
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports:
+      - "5672:5672"       # AMQP
+      - "15672:15672"     # web UI
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+
+  product_worker:
+    build: ./product_service
+    command: sh -c "python manage.py migrate && python consumer.py"
+    volumes:
+      - ./product_service:/app
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      product_db:
+        condition: service_healthy
+
+
+volumes:
+  user_db_data:
+  product_db_data:
